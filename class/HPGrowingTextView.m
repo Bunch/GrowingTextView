@@ -194,6 +194,10 @@
     internalTextView.hidden = NO;
     internalTextView.delegate = self;
     
+    CGFloat newSizeH = [self sizeThatFits:self.bounds.size].height;
+    if ([delegate respondsToSelector:@selector(growingTextView:willChangeHeight:)]) {
+        [delegate growingTextView:self willChangeHeight:newSizeH];
+    }
     [self sizeToFit];
     
     minNumberOfLines = m;
