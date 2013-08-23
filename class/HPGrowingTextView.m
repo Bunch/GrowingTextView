@@ -260,8 +260,6 @@
 		{
             if(animateHeightChange) {
                 
-                if ([UIView resolveClassMethod:@selector(animateWithDuration:animations:)]) {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40000
                     [UIView animateWithDuration:animationDuration 
                                           delay:0 
                                         options:(UIViewAnimationOptionAllowUserInteraction|
@@ -274,16 +272,6 @@
                                              [delegate growingTextView:self didChangeHeight:newSizeH];
                                          }
                                      }];
-#endif
-                } else {
-                    [UIView beginAnimations:@"" context:nil];
-                    [UIView setAnimationDuration:animationDuration];
-                    [UIView setAnimationDelegate:self];
-                    [UIView setAnimationDidStopSelector:@selector(growDidStop)];
-                    [UIView setAnimationBeginsFromCurrentState:YES];
-                    [self resizeTextView:newSizeH];
-                    [UIView commitAnimations];
-                }
             } else {
                 [self resizeTextView:newSizeH];                
                 // [fixed] The growingTextView:didChangeHeight: delegate method was not called at all when not animating height changes.
