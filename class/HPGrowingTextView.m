@@ -90,7 +90,7 @@
     
     internalTextView.text = @"";
     
-    [self setMaxNumberOfLines:3];
+    //[self setMaxNumberOfLines:3];
 
     [self setPlaceholderColor:[UIColor lightGrayColor]];
     internalTextView.displayPlaceHolder = YES;
@@ -151,7 +151,7 @@
     
     internalTextView.text = newText;
     
-    maxHeight = internalTextView.contentSize.height;
+    maxHeight = [self measureHeight];
     
     internalTextView.text = saveText;
     internalTextView.hidden = NO;
@@ -188,7 +188,7 @@
     
     internalTextView.text = newText;
     
-    minHeight = internalTextView.contentSize.height;
+    minHeight = [self measureHeight];
     
     internalTextView.text = saveText;
     internalTextView.hidden = NO;
@@ -242,7 +242,7 @@
 - (void)refreshHeight
 {
 	//size of content, so we can set the frame of self
-	NSInteger newSizeH = internalTextView.contentSize.height;
+	NSInteger newSizeH = [self measureHeight];
 	if(newSizeH < minHeight || !internalTextView.hasText) newSizeH = minHeight; //not smalles than minHeight
   if (internalTextView.frame.size.height > maxHeight) newSizeH = maxHeight; // not taller than maxHeight
 
@@ -282,7 +282,6 @@
                 }	
             }
 		}
-		
         
         // if our new height is greater than the maxHeight
         // sets not set the height or move things
@@ -298,8 +297,15 @@
 			internalTextView.scrollEnabled = NO;
 		}
 		
+        // scroll to caret (needed on iOS7)
+        if ([self respondsToSelector:@selector(snapshotViewAfterScreenUpdates:)])
+        {
+            CGRect r = [internalTextView caretRectForPosition:internalTextView.selectedTextRange.end];
+            CGFloat caretY =  MAX(r.origin.y - internalTextView.frame.size.height + r.size.height + 8, 0);
+            if(internalTextView.contentOffset.y < caretY && r.origin.y != INFINITY)
+                internalTextView.contentOffset = CGPointMake(0, MIN(caretY, internalTextView.contentSize.height));
+        }
 	}
-	
     // Display (or not) the placeholder string
     
     BOOL wasDisplayingPlaceholder = internalTextView.displayPlaceHolder;
@@ -317,6 +323,51 @@
 	
 }
 
+// Code from apple developer forum - @Steve Krulewitz, @Mark Marszal, @Eric Silverberg
+- (CGFloat)measureHeight
+{
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
+    if ([self respondsToSelector:@selector(snapshotViewAfterScreenUpdates:)])
+    {
+        CGRect frame = internalTextView.bounds;
+        CGSize fudgeFactor;
+        // The padding added around the text on iOS6 and iOS7 is different.
+        fudgeFactor = CGSizeMake(10.0, 16.0);
+        
+        frame.size.height -= fudgeFactor.height;
+        frame.size.width -= fudgeFactor.width;
+        
+        NSMutableAttributedString* textToMeasure;
+        if(internalTextView.attributedText && internalTextView.attributedText.length > 0){
+            textToMeasure = [[NSMutableAttributedString alloc] initWithAttributedString:internalTextView.attributedText];
+        }
+        else{
+            textToMeasure = [[NSMutableAttributedString alloc] initWithString:internalTextView.text];
+            [textToMeasure addAttribute:NSFontAttributeName value:internalTextView.font range:NSMakeRange(0, textToMeasure.length)];
+        }
+        
+        if ([textToMeasure.string hasSuffix:@"\n"])
+        {
+            [textToMeasure appendAttributedString:[[NSAttributedString alloc] initWithString:@"-" attributes:@{NSFontAttributeName: internalTextView.font}]];
+        }
+        
+        // NSAttributedString class method: boundingRectWithSize:options:context is
+        // available only on ios7.0 sdk.
+        CGRect size = [textToMeasure boundingRectWithSize:CGSizeMake(CGRectGetWidth(frame), MAXFLOAT)
+                                                  options:NSStringDrawingUsesLineFragmentOrigin
+                                                  context:nil];
+        
+        return CGRectGetHeight(size) + fudgeFactor.height;
+    }
+    else
+    {
+        return self.internalTextView.contentSize.height;
+    }
+#else
+    return self.internalTextView.contentSize.height;
+#endif
+}
+
 -(void)resizeTextView:(NSInteger)newSizeH
 {
     if ([delegate respondsToSelector:@selector(growingTextView:willChangeHeight:)]) {
@@ -331,15 +382,14 @@
     internalTextViewFrame.origin.x = contentInset.left;
     internalTextViewFrame.size.width = internalTextView.contentSize.width;
     
-    internalTextView.frame = internalTextViewFrame;
+    if(!CGRectEqualToRect(internalTextView.frame, internalTextViewFrame)) internalTextView.frame = internalTextViewFrame;
 }
 
--(void)growDidStop
+- (void)growDidStop
 {
 	if ([delegate respondsToSelector:@selector(growingTextView:didChangeHeight:)]) {
 		[delegate growingTextView:self didChangeHeight:self.frame.size.height];
 	}
-	
 }
 
 -(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
@@ -425,12 +475,12 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
--(void)setTextAlignment:(UITextAlignment)aligment
+-(void)setTextAlignment:(NSTextAlignment)aligment
 {
 	internalTextView.textAlignment = aligment;
 }
 
--(UITextAlignment)textAlignment
+-(NSTextAlignment)textAlignment
 {
 	return internalTextView.textAlignment;
 }
@@ -445,6 +495,18 @@
 -(NSRange)selectedRange
 {
 	return internalTextView.selectedRange;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)setIsScrollable:(BOOL)isScrollable
+{
+    internalTextView.scrollEnabled = isScrollable;
+}
+
+- (BOOL)isScrollable
+{
+    return internalTextView.scrollEnabled;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
