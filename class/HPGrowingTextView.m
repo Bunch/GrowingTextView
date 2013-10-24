@@ -90,7 +90,7 @@
     
     internalTextView.text = @"";
     
-    //[self setMaxNumberOfLines:3];
+    [self setMaxNumberOfLines:3];
 
     [self setPlaceholderColor:[UIColor lightGrayColor]];
     internalTextView.displayPlaceHolder = YES;
@@ -243,9 +243,13 @@
 {
 	//size of content, so we can set the frame of self
 	NSInteger newSizeH = [self measureHeight];
-	if(newSizeH < minHeight || !internalTextView.hasText) newSizeH = minHeight; //not smalles than minHeight
-  if (internalTextView.frame.size.height > maxHeight) newSizeH = maxHeight; // not taller than maxHeight
-
+	if (newSizeH < minHeight || !internalTextView.hasText) {
+        newSizeH = minHeight; //not smalles than minHeight
+    }
+    else if (maxHeight && internalTextView.frame.size.height > maxHeight) {
+        newSizeH = maxHeight; // not taller than maxHeight
+    }
+    
 	if (internalTextView.frame.size.height != newSizeH)
 	{
         // [fixed] Pasting too much text into the view failed to fire the height change, 
@@ -531,6 +535,18 @@
 -(UIReturnKeyType)returnKeyType
 {
 	return internalTextView.returnKeyType;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)setKeyboardType:(UIKeyboardType)keyType
+{
+	internalTextView.keyboardType = keyType;
+}
+
+- (UIKeyboardType)keyboardType
+{
+	return internalTextView.keyboardType;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
